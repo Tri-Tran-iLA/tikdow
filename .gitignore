@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# TikDow local preferences and media
+/settings/settings.json
+/settings/*.tmp
+/downloads/
+*.part
+*.ytdl
