@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 from urllib.parse import urlsplit
+from .i18n import tr
 
 ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_FILE = ROOT / 'settings' / 'settings.json'
@@ -13,7 +14,8 @@ SETTINGS_FILE = ROOT / 'settings' / 'settings.json'
 
 def defaults():
     return {'format': 'mp4', 'output_dir': str(Path.home() / 'Downloads' / 'TikDow'),
-            'mp3_bitrate': '192', 'ffmpeg_dir': ''}
+            'mp3_bitrate': '192', 'ffmpeg_dir': '', 'language': 'vi',
+            'audio_mode': 'enhance', 'target_lufs': '-14'}
 
 
 def load_settings(path=SETTINGS_FILE):
@@ -33,6 +35,10 @@ def load_settings(path=SETTINGS_FILE):
         settings['mp3_bitrate'] = '192'
     if not settings['output_dir'].strip():
         settings['output_dir'] = defaults()['output_dir']
+    for key, allowed in {'language': ('vi', 'en'), 'audio_mode': ('original', 'analyze', 'enhance'),
+                         'target_lufs': ('-16', '-14', '-12')}.items():
+        if settings[key] not in allowed:
+            settings[key] = defaults()[key]
     return settings
 
 
@@ -52,7 +58,7 @@ def save_settings(settings, path=SETTINGS_FILE):
             os.unlink(name)
 
 
-def validate_url(url):
+def validate_url(url, language='vi'):
     url = url.strip()
     try:
         parts = urlsplit(url)
@@ -64,25 +70,26 @@ def validate_url(url):
     except ValueError:
         valid = False
     if not valid:
-        raise ValueError('Hãy dán một link video HTTPS của TikTok (hỗ trợ vm/vt.tiktok.com).')
+        raise ValueError(tr(language, 'invalid_url'))
     if '/photo/' in parts.path or '/live' in parts.path:
-        raise ValueError('Bản này hỗ trợ video TikTok, chưa hỗ trợ ảnh hoặc LIVE.')
+        raise ValueError(tr(language, 'video_only'))
     return url
 
 
-def check_ffmpeg(directory):
+def check_ffmpeg(directory, language='vi'):
     for tool in ('ffmpeg', 'ffprobe'):
         found = shutil.which(tool, path=directory) if directory else shutil.which(tool)
         if not found:
-            raise ValueError('Thiếu FFmpeg/FFprobe. Chọn thư mục bin chứa cả hai hoặc thêm vào PATH.')
+            raise ValueError(tr(language, 'missing_ffmpeg'))
 
 
 def build_command(url, settings):
-    url = validate_url(url)
+    url = validate_url(url, settings.get('language', 'vi'))
     command = [sys.executable, '-m', 'yt_dlp', '--ignore-config', '--no-playlist',
                '--newline', '--no-color', '--progress', '--windows-filenames',
                '--socket-timeout', '20', '--retries', '3', '--no-overwrites',
                '-P', settings['output_dir'], '-o', '%(title).100s [%(id)s].%(ext)s']
+    command += ['--no-simulate', '--print', 'after_move:TIKDOW_FILE:%(filepath)j']
     if settings['ffmpeg_dir']:
         command += ['--ffmpeg-location', settings['ffmpeg_dir']]
     if settings['format'] == 'mp3':
