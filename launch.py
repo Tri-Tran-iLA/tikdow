@@ -19,11 +19,11 @@ def main():
     requirement = ROOT / 'requirements.txt'
     digest = hashlib.sha256(requirement.read_bytes()).hexdigest()
     stamp = ENV / '.tikdow-requirements'
-    ready = subprocess.run([str(PYTHON), '-c', 'import yt_dlp; import tkinter'],
+    ready = subprocess.run([str(PYTHON), '-c', 'import yt_dlp; import tkinter; import curl_cffi'],
                            capture_output=True).returncode == 0
     if not ready or not stamp.exists() or stamp.read_text() != digest:
-        subprocess.run([str(PYTHON), '-m', 'pip', 'install', '-r', str(requirement)], check=True)
-        subprocess.run([str(PYTHON), '-c', 'import yt_dlp; import tkinter'], check=True)
+        subprocess.run([str(PYTHON), '-m', 'pip', 'install', '--upgrade', '-r', str(requirement)], check=True)
+        subprocess.run([str(PYTHON), '-c', 'import yt_dlp; import tkinter; import curl_cffi'], check=True)
         stamp.write_text(digest)
     return subprocess.call([str(PYTHON), '-m', 'tikdow'], cwd=ROOT)
 
