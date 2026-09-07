@@ -7,6 +7,7 @@ import signal
 import subprocess
 import sys
 import threading
+import webbrowser
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -96,6 +97,20 @@ class App(tk.Tk):
         ttk.Label(body, textvariable=self.status, wraplength=690).grid(row=11, column=0, sticky='w', pady=8)
         self.log = tk.Text(body, height=9, bg='#080f1b', fg='#bfd0e7', relief='flat', font=('Consolas', 9), state='disabled', wrap='word')
         self.log.grid(row=12, column=0, sticky='nsew')
+        footer = ttk.Frame(body)
+        footer.grid(row=13, column=0, sticky='ew', pady=(12, 0))
+        for label, url, side in (
+            ('Tri-Tran-iLA', 'https://github.com/Tri-Tran-iLA', 'left'),
+            ('GitHub Repo ↗', 'https://github.com/Tri-Tran-iLA/tikdow', 'right'),
+        ):
+            link_label = ttk.Label(footer, text=label, foreground='#38ddd0',
+                                   cursor='hand2', takefocus=True)
+            link_label.pack(side=side)
+            def open_link(_event=None, target=url):
+                webbrowser.open_new_tab(target)
+            link_label.bind('<Button-1>', open_link)
+            link_label.bind('<Return>', open_link)
+            link_label.bind('<space>', open_link)
         self.protocol('WM_DELETE_WINDOW', self.close)
         self.after(100, self.poll)
         self.update_idletasks()
