@@ -60,3 +60,53 @@ Bộ tải dựa trên [yt-dlp](https://github.com/yt-dlp/yt-dlp). Không đảm
 ## License
 
 Giữ nguyên GPL-3.0 trong [LICENSE](LICENSE).
+
+## v0.2 — Loudness và English / Tiếng Việt
+
+Chọn **English** hoặc **Tiếng Việt** ở góc trên bên phải. Nhãn, nút và thông báo ứng dụng đổi ngay, không cần khởi động lại. Nhật ký kỹ thuật do yt-dlp/FFmpeg trả về giữ ngôn ngữ gốc. Lựa chọn ngôn ngữ được lưu trong settings JSON.
+
+Để nâng âm lượng file tải về:
+
+1. Bật **Nâng loudness (lưu thêm bản riêng)** trước khi tải.
+2. Chọn mục tiêu **−16**, **−14** (mặc định) hoặc **−12 LUFS**. Giá trị càng gần 0 càng lớn.
+3. Tải như bình thường. TikDow đo integrated loudness, true peak và loudness range của file tải về, sau đó chạy FFmpeg `loudnorm` hai lượt dựa trên số đo.
+4. TikDow đo lại âm thanh đã mã hóa và hiện số đo nguồn/kết quả trong nhật ký.
+5. Thư mục đích có bản tải ban đầu và bản `.loudness_-14LUFS_<id>.mp3` hoặc `.mp4` (tên đổi theo mục tiêu). ID riêng tránh ghi đè lần xuất trước.
+
+**Mặc định loudness tắt** để không thay đổi âm thanh ngoài ý muốn. Bật lên để dùng chức năng mới. Settings cũ vẫn dùng được; không cần xóa file JSON hay `.venv`.
+
+- True peak mục tiêu: **−1.5 dBTP**, LRA mục tiêu: **11 LU**. FFmpeg ưu tiên chuẩn hóa tuyến tính; có thể dùng xử lý động khi mức đỉnh/dải động không cho phép.
+- Chuẩn hóa có thể tăng hoặc giảm âm lượng tùy nguồn. Không phục hồi chất lượng đã mất và không mô phỏng EQ/hiệu ứng phát của TikTok. Nguồn đo là file tải về, không phải master gốc của tác giả.
+- MP4 giữ nguyên luồng video, mã hóa lại âm thanh AAC 256 kbps. MP3 dùng bitrate đã chọn. Âm thanh xuất ở 48 kHz.
+- Mã hóa có mất dữ liệu có thể làm mức LUFS/true peak cuối lệch nhẹ so với mục tiêu; hãy xem số đo cuối trong log. Không cam kết mọi nguồn đạt chính xác mục tiêu.
+- File im lặng hoặc không đủ số đo hữu hạn được bỏ qua, giữ bản tải ban đầu. Nếu xử lý lỗi, bản tải ban đầu vẫn còn.
+- Hủy áp dụng cả lúc tải, đo và chuẩn hóa. Nếu buộc dừng tiến trình, thư mục tạm `.tikdow-loudness-*` có thể còn lại; có thể xóa sau khi ứng dụng đã dừng.
+
+Các trường JSON mới: `language` (`vi`/`en`), `loudness` (`off`/`on`), `target_lufs` (`-16`/`-14`/`-12`).
+
+Cập nhật trên Windows (đóng TikDow trước):
+
+```powershell
+git pull --ff-only
+.\Start-TikDow.bat
+```
+
+Thư viện `yt-dlp[default,curl-cffi]` đã bao gồm hỗ trợ browser impersonation. Launcher kiểm tra `curl_cffi` và nâng cấp dependencies khi requirements thay đổi hoặc môi trường cần sửa.
+
+### English quick guide
+
+TikDow is a Python desktop TikTok downloader with **MP3 / MP4 output**, a mandatory project-local **`.venv`**, persistent JSON settings, and a live **English / Vietnamese** language selector.
+
+**Windows setup:** install Python 3.10+ with pip and Tcl/Tk, and FFmpeg plus FFprobe. Clone this repository, then double-click `Start-TikDow.bat`. The launcher creates `.venv` and installs dependencies automatically. Set the FFmpeg bin folder in the app if it is not on PATH. Linux/macOS: use `python3 launch.py` with Tkinter, venv and FFmpeg installed.
+
+**Download:** paste a TikTok video URL, choose MP3 or MP4 and an output folder, then click Download. Browser impersonation dependencies are included, but private videos, login requirements, region restrictions and anti-bot responses can still prevent downloads.
+
+**Loudness:** enable “Normalize loudness (save a separate copy)” and choose −16, −14 or −12 LUFS. TikDow measures the downloaded source, performs measured two-pass FFmpeg loudnorm processing (true peak target −1.5 dBTP, LRA target 11 LU), then measures the encoded result. Both readings appear in the log. Normalization may increase or decrease level; it does not recreate TikTok playback effects or recover lost quality. Silent/unmeasurable audio is skipped.
+
+The original download is retained. The normalized file has a `.loudness_<target>LUFS_<id>` suffix. MP4 video is stream-copied; audio is re-encoded as AAC 256 kbps or MP3 at the selected bitrate, at 48 kHz. Lossy encoding can slightly change final LUFS/true peak. Cancel stops downloading and audio processing; forced termination may leave a `.tikdow-loudness-*` temporary directory that can be removed after stopping the app.
+
+Preferences are saved atomically to `settings/settings.json`: format, output folder, MP3 bitrate, FFmpeg folder, language, loudness enabled state, and LUFS target. Existing settings migrate with safe defaults; normalization is off initially. Engine logs keep their original language.
+
+**Update:** close the app, run `git pull --ff-only`, then launch again. **Tests:** run `python -m unittest discover -s tests -v` inside `.venv`; FFmpeg integration tests cover actual MP3/MP4 loudness, original preservation, MP4 video preservation, and silence handling. Network downloads and Windows visual behavior must be checked on the target machine.
+
+Reference: [FFmpeg loudnorm](https://ffmpeg.org/ffmpeg-filters.html#loudnorm).

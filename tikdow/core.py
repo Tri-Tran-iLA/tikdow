@@ -13,7 +13,8 @@ SETTINGS_FILE = ROOT / 'settings' / 'settings.json'
 
 def defaults():
     return {'format': 'mp4', 'output_dir': str(Path.home() / 'Downloads' / 'TikDow'),
-            'mp3_bitrate': '192', 'ffmpeg_dir': ''}
+            'mp3_bitrate': '192', 'ffmpeg_dir': '', 'language': 'vi',
+            'loudness': 'off', 'target_lufs': '-14'}
 
 
 def load_settings(path=SETTINGS_FILE):
@@ -27,6 +28,9 @@ def load_settings(path=SETTINGS_FILE):
     for key in settings:
         if isinstance(data.get(key), str):
             settings[key] = data[key]
+    for key, allowed in {'language': ('vi', 'en'), 'loudness': ('off', 'on'), 'target_lufs': ('-16', '-14', '-12')}.items():
+        if settings[key] not in allowed:
+            settings[key] = defaults()[key]
     if settings['format'] not in ('mp3', 'mp4'):
         settings['format'] = 'mp4'
     if settings['mp3_bitrate'] not in ('128', '192', '256', '320'):
@@ -80,6 +84,7 @@ def check_ffmpeg(directory):
 def build_command(url, settings):
     url = validate_url(url)
     command = [sys.executable, '-m', 'yt_dlp', '--ignore-config', '--no-playlist',
+               '--print', 'after_move:TIKDOW_FILE:%(filepath)j', '--no-simulate',
                '--newline', '--no-color', '--progress', '--windows-filenames',
                '--socket-timeout', '20', '--retries', '3', '--no-overwrites',
                '-P', settings['output_dir'], '-o', '%(title).100s [%(id)s].%(ext)s']

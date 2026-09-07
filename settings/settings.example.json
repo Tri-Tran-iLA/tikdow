@@ -2,5 +2,8 @@
   "format": "mp4",
   "output_dir": "C:/Users/YourName/Downloads/TikDow",
   "mp3_bitrate": "192",
-  "ffmpeg_dir": ""
+  "ffmpeg_dir": "",
+  "language": "vi",
+  "loudness": "off",
+  "target_lufs": "-14"
 }
