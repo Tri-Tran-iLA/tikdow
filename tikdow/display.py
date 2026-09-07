@@ -105,7 +105,14 @@ class DisplayController:
         return abs(size) if size < 0 else size * 96 / 72
 
     def numbers(self, value):
-        return tuple(float(str(v)) for v in self.root.tk.splitlist(value))
+        # Tk returns scalar ints, Python sequences, strings or Tcl_Obj values.
+        if isinstance(value, (int, float)):
+            return (float(value),)
+        if isinstance(value, (tuple, list)):
+            parts = value
+        else:
+            parts = self.root.tk.splitlist(value if isinstance(value, (str, bytes)) else str(value))
+        return tuple(float(str(v)) for v in parts)
 
     def capture(self, widget):
         keys = widget.keys()

@@ -33,3 +33,36 @@ class DisplayTests(unittest.TestCase):
         for _ in range(10):
             layout_for(3840,2064,192)
             self.assertEqual(layout_for(1920,1032,96),expected)
+
+
+class TkSpacingRegressionTests(unittest.TestCase):
+    def test_real_tcl_parser_with_tk_return_types(self):
+        import tkinter as tk
+        from tikdow.display import DisplayController
+        controller = DisplayController.__new__(DisplayController)
+        controller.root = tk.Tcl()  # Real Tcl interpreter; no desktop required.
+        cases = [(0, (0.0,)), (8, (8.0,)), (2.5, (2.5,)),
+                 ('8', (8.0,)), ('0 20', (0.0, 20.0)),
+                 ((0, 20), (0.0, 20.0)), ([4, 8], (4.0, 8.0)),
+                 ('', ()), (b'8 12', (8.0, 12.0))]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(controller.numbers(value), expected)
+
+    def test_capture_pack_and_grid_integer_spacing(self):
+        import tkinter as tk
+        from tikdow.display import DisplayController
+        from unittest.mock import Mock
+        for manager in ('pack', 'grid'):
+            controller = DisplayController.__new__(DisplayController)
+            controller.root = tk.Tcl()
+            controller.spacing = []
+            widget = Mock()
+            widget.keys.return_value = []
+            widget.winfo_manager.return_value = manager
+            widget.winfo_children.return_value = []
+            getattr(widget, manager + '_info').return_value = {
+                'padx': 0, 'pady': (0, 20), 'ipadx': 8, 'ipady': 0}
+            controller.capture(widget)
+            self.assertEqual([entry[3] for entry in controller.spacing],
+                             [(0.0,), (0.0, 20.0), (8.0,), (0.0,)])
