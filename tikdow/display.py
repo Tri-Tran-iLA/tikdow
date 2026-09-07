@@ -47,10 +47,10 @@ def clamp_position(x, y, width, height, work, dpi):
 
 class WindowsMonitor:
     def __init__(self, root):
+        self.root = root
         self.user = ctypes.windll.user32
         self.user.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
         self.user.GetAncestor.restype = wintypes.HWND
-        self.hwnd = self.user.GetAncestor(root.winfo_id(), 2)
         self.user.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
         self.user.MonitorFromWindow.restype = wintypes.HANDLE
         self.user.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.c_void_p]
@@ -62,21 +62,30 @@ class WindowsMonitor:
             self.user.GetDpiForWindow.argtypes = [wintypes.HWND]
             self.user.GetDpiForWindow.restype = wintypes.UINT
 
+    @property
+    def hwnd(self):
+        # Tk may recreate the outer HWND when resizable/style flags change.
+        # Never retain that handle across event-loop iterations.
+        client = self.root.winfo_id()
+        return self.user.GetAncestor(client, 2) or client
+
     def read(self):
         class Info(ctypes.Structure):
             _fields_ = [('size', wintypes.DWORD), ('monitor', wintypes.RECT),
                         ('work', wintypes.RECT), ('flags', wintypes.DWORD)]
         info = Info()
         info.size = ctypes.sizeof(info)
-        monitor = self.user.MonitorFromWindow(self.hwnd, 2)
+        hwnd = self.hwnd
+        monitor = self.user.MonitorFromWindow(hwnd, 2)
         if not self.user.GetMonitorInfoW(monitor, ctypes.byref(info)):
             raise OSError('GetMonitorInfoW failed')
-        dpi = self.user.GetDpiForWindow(self.hwnd) if hasattr(self.user, 'GetDpiForWindow') else 96
+        dpi = self.user.GetDpiForWindow(hwnd) if hasattr(self.user, 'GetDpiForWindow') else 96
         return (info.work.left, info.work.top, info.work.right, info.work.bottom), dpi or 96
 
     def position(self):
         rect = wintypes.RECT()
-        self.user.GetWindowRect(self.hwnd, ctypes.byref(rect))
+        if not self.user.GetWindowRect(self.hwnd, ctypes.byref(rect)):
+            raise OSError('GetWindowRect failed')
         return rect.left, rect.top
 
     def move(self, x, y):
@@ -138,9 +147,25 @@ class DisplayController:
             self.capture(child)
 
     def refresh(self, initial=False):
+        try:
+            self.apply_layout(initial)
+        except OSError:
+            # A transient monitor/window transition must not stop DPI tracking.
+            self.last = None
+        finally:
+            self.timer = self.root.after(500, self.refresh)
+
+    def apply_layout(self, initial=False):
         root = self.root
         if self.native:
-            work, dpi = self.native.read()
+            try:
+                work, dpi = self.native.read()
+            except OSError:
+                if not initial:
+                    raise
+                # Still show a usable initial window if the native wrapper is not ready.
+                work = (0, 0, root.winfo_screenwidth(), root.winfo_screenheight())
+                dpi = 96
         else:
             work = (0, 0, root.winfo_screenwidth(), root.winfo_screenheight())
             dpi = root.winfo_fpixels('1i')
@@ -181,4 +206,4 @@ class DisplayController:
                 self.native.move(x, y)
             else:
                 root.geometry(f'{width}x{height}+{x}+{y}')
-        self.timer = root.after(500, self.refresh)
+

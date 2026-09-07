@@ -66,3 +66,31 @@ class TkSpacingRegressionTests(unittest.TestCase):
             controller.capture(widget)
             self.assertEqual([entry[3] for entry in controller.spacing],
                              [(0.0,), (0.0, 20.0), (8.0,), (0.0,)])
+
+
+class MonitorRecoveryTests(unittest.TestCase):
+    def test_outer_window_handle_is_refreshed(self):
+        from unittest.mock import Mock
+        from tikdow.display import WindowsMonitor
+        monitor = WindowsMonitor.__new__(WindowsMonitor)
+        monitor.root = Mock()
+        monitor.root.winfo_id.return_value = 100
+        monitor.user = Mock()
+        monitor.user.GetAncestor.side_effect = [200, 300, 0]
+        self.assertEqual(monitor.hwnd, 200)
+        self.assertEqual(monitor.hwnd, 300)
+        self.assertEqual(monitor.hwnd, 100)
+
+    def test_failed_poll_schedules_retry_then_recovers(self):
+        from unittest.mock import Mock
+        from tikdow.display import DisplayController
+        controller = DisplayController.__new__(DisplayController)
+        controller.root = Mock()
+        controller.last = ('old', 96)
+        controller.apply_layout = Mock(side_effect=[OSError('GetMonitorInfoW failed'), None])
+        controller.refresh()
+        self.assertIsNone(controller.last)
+        controller.root.after.assert_called_once_with(500, controller.refresh)
+        controller.refresh()
+        self.assertEqual(controller.apply_layout.call_count, 2)
+        self.assertEqual(controller.root.after.call_count, 2)
