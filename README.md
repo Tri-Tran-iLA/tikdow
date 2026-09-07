@@ -110,3 +110,15 @@ Preferences are saved atomically to `settings/settings.json`: format, output fol
 **Update:** close the app, run `git pull --ff-only`, then launch again. **Tests:** run `python -m unittest discover -s tests -v` inside `.venv`; FFmpeg integration tests cover actual MP3/MP4 loudness, original preservation, MP4 video preservation, and silence handling. Network downloads and Windows visual behavior must be checked on the target machine.
 
 Reference: [FFmpeg loudnorm](https://ffmpeg.org/ffmpeg-filters.html#loudnorm).
+
+## v0.3 — Cửa sổ cố định và DPI / Fixed window and DPI
+
+- Khóa kéo resize và nút maximize; vẫn di chuyển, thu nhỏ và đóng cửa sổ bình thường.
+- Windows bật Per-Monitor V2 DPI awareness trước khi tạo UI (có fallback cho API Windows cũ).
+- Kích thước cơ sở **860 × 800 tại 100%**. Font, padding, khoảng cách và kích thước cửa sổ được scale từ thông số gốc, tránh sai số tích lũy khi đổi màn hình.
+- Tự kiểm tra DPI và vùng làm việc của màn hình mỗi 500 ms. Khi kéo sang màn hình có DPI khác hoặc đổi Windows Display Scale, ứng dụng tự tính lại kích thước.
+- Hỗ trợ bố cục cho Full HD **1920 × 1080**, QHD/2K **2560 × 1440** và 4K **3840 × 2160**. Độ phân giải và DPI là hai thông số khác nhau: 4K không tự động đồng nghĩa scale 200%.
+- Nếu scale quá lớn so với vùng làm việc, toàn bộ UI được giảm tỉ lệ để vừa màn hình và chừa chỗ cho taskbar/thanh tiêu đề. Vì vậy ở Full HD với Windows scale rất cao, chữ có thể nhỏ hơn mức Windows yêu cầu.
+- Kiểm thử tính toán: ba độ phân giải trên với scale 100%, 125%, 150%, 175%, 200%, 250%, 300%; vị trí màn hình phụ có tọa độ âm; đổi DPI qua lại không tích lũy sai số. Chưa xác nhận trực quan trên phần cứng Windows đa màn hình thực tế.
+
+**English:** user resizing and maximizing are disabled. The window remains movable and minimizable. On Windows, per-monitor DPI awareness is configured before UI creation. Text, spacing and window dimensions scale from a fixed 860 × 800 baseline at 100%. The app checks the current monitor's DPI and working area every 500 ms and adjusts when moving between displays or changing Windows scaling. The layout fits Full HD, QHD (2560 × 1440) and 4K; at unusually high scaling on a small working area, it reduces the effective UI scale to keep all controls visible. Calculation tests cover 100–300% scaling and negative monitor coordinates; real Windows multi-monitor visual verification remains outstanding.

@@ -10,6 +10,7 @@ import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from .display import DisplayController, enable_dpi_awareness
 from .i18n import STRINGS, translate
 
 from .core import build_command, check_ffmpeg, load_settings, save_settings
@@ -17,10 +18,11 @@ from .core import build_command, check_ffmpeg, load_settings, save_settings
 
 class App(tk.Tk):
     def __init__(self):
+        enable_dpi_awareness()
         super().__init__()
+        self.withdraw()
+        self.tk.call('tk', 'scaling', 96 / 72)
         self.title('TikDow • TikTok Downloader')
-        self.geometry('820x760')
-        self.minsize(760, 720)
         self.configure(bg='#101827')
         style = ttk.Style(self)
         style.theme_use('clam')
@@ -96,6 +98,9 @@ class App(tk.Tk):
         self.log.grid(row=12, column=0, sticky='nsew')
         self.protocol('WM_DELETE_WINDOW', self.close)
         self.after(100, self.poll)
+        self.update_idletasks()
+        self.display = DisplayController(self)
+        self.deiconify()
         entry.focus_set()
 
     def t(self, text):
