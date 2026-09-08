@@ -1,6 +1,6 @@
 # TikDow 1.0
 
-**Tải video TikTok thành MP4 hoặc MP3, kèm chuẩn hóa loudness và giao diện English / Tiếng Việt.**
+**Hỗ trợ video TikTok (MP4 / MP3) và bài ảnh Photo (nhạc MP3), kèm chuẩn hóa loudness và giao diện English / Tiếng Việt.**
 
 Ứng dụng desktop Python dành chủ yếu cho Windows, phát triển bởi [Tri-Tran-iLA](https://github.com/Tri-Tran-iLA).
 
@@ -15,6 +15,16 @@
 - **Tải nền:** thanh tiến trình, nhật ký, hủy tải/xử lý và mở thư mục kết quả.
 - **Môi trường riêng:** launcher tự tạo và bắt buộc chạy trong `.venv` của dự án.
 - **Nhớ cấu hình:** tự lưu lựa chọn vào JSON; liên kết tác giả và repo ở cuối giao diện.
+
+### Nội dung được hỗ trợ
+
+| Loại bài TikTok | Tải xuống | Nhận diện trên giao diện |
+| --- | --- | --- |
+| Video `/video/` | MP4 hoặc MP3 | Hiện cả hai lựa chọn |
+| Photo / album ảnh `/photo/` | Nhạc đi kèm dưới dạng MP3 | Tự chọn MP3 và ẩn MP4 |
+| Link rút gọn `vt.tiktok.com` / `vm.tiktok.com` | Theo loại bài đích | Giải địa chỉ và nhận diện khi bắt đầu tải |
+
+Nhạc MP3 từ bài Photo vẫn hỗ trợ chọn bitrate và chuẩn hóa loudness. Hỗ trợ Photo ở đây là **tải âm thanh của bài đăng**; chưa tải từng ảnh hoặc ghép album thành video.
 
 ## Cài đặt và khởi chạy
 
@@ -34,8 +44,8 @@ Có thể khởi chạy bằng `python launch.py`. Linux/macOS dùng `python3 la
 
 ## Sử dụng
 
-1. Dán link video TikTok.
-2. Chọn **MP4** hoặc **MP3**, bitrate MP3 và thư mục lưu.
+1. Dán link **video hoặc bài ảnh Photo** của TikTok.
+2. Với video, chọn **MP4** hoặc **MP3**; với Photo, ứng dụng tự chọn **MP3** và ẩn MP4. Chọn bitrate MP3 và thư mục lưu.
 3. Nếu muốn chuẩn hóa âm lượng, bật **Nâng loudness (lưu thêm bản riêng)** rồi chọn LUFS.
 4. Bấm **Tải xuống**. Xem tiến trình/nhật ký, hoặc bấm **Hủy tải** để dừng.
 5. Bấm **Mở thư mục** để xem kết quả.
@@ -113,7 +123,8 @@ Phiên bản mã nguồn: **`1.0.0`**.
 | --- | --- |
 | `launch.py` | Tạo/kiểm tra `.venv` và khởi chạy |
 | `tikdow/app.py` | UI, tiến trình tải và điều phối xử lý |
-| `tikdow/core.py` | JSON, kiểm tra URL và lệnh tải |
+| `tikdow/core.py` | JSON, nhận diện video/Photo, kiểm tra URL và lệnh tải |
+| `tikdow/resolve.py` | Giải địa chỉ link TikTok rút gọn |
 | `tikdow/loudness.py` | Đo và chuẩn hóa âm thanh |
 | `tikdow/i18n.py` | Chuỗi giao diện song ngữ |
 | `tikdow/display.py` | DPI và bố cục cửa sổ |
@@ -123,11 +134,11 @@ Kiểm thử bao gồm MP3/MP4, giữ file gốc/luồng video, im lặng, setti
 
 ## English
 
-**TikDow 1.0** is a Python desktop TikTok downloader with MP4/MP3 output, optional loudness normalization, and an English/Vietnamese interface.
+**TikDow 1.0** is a Python desktop TikTok downloader supporting **videos as MP4/MP3 and Photo posts as MP3 audio**, optional loudness normalization, and an English/Vietnamese interface.
 
 **Setup:** install Python 3.10+ with pip and Tcl/Tk, plus FFmpeg and FFprobe. Clone this repository or extract its ZIP, then run `Start-TikDow.bat`. The launcher creates and requires a project-local `.venv`; it installs dependencies automatically. Choose your FFmpeg bin folder in the app if it is not on PATH. Windows is the primary target; Linux/macOS can use `python3 launch.py` with the required system packages.
 
-**Download:** photo-post URLs support MP3 audio only; MP4 is hidden for photo posts and restored for video URLs. Short links are resolved when downloading begins. Paste a TikTok video URL, choose MP4 or MP3, select an output folder, and click Download. MP3 supports 128/192/256/320 kbps. Progress, cancellation and an Open folder button are included. Select English or Tiếng Việt at the top right; engine logs keep their original language.
+**Download:** photo-post URLs support MP3 audio only; MP4 is hidden for photo posts and restored for video URLs. Short links are resolved when downloading begins. Paste a TikTok video or Photo-post URL, choose the available format, select an output folder, and click Download. Photo support downloads the post's soundtrack, not its image files; bitrate selection and loudness normalization also apply to Photo audio. MP3 supports 128/192/256/320 kbps. Progress, cancellation and an Open folder button are included. Select English or Tiếng Việt at the top right; engine logs keep their original language.
 
 **Loudness:** enable normalization before downloading and select −16, −14 or −12 LUFS. TikDow measures the downloaded audio, applies measured two-pass FFmpeg loudnorm processing, then measures the encoded output. Targets are −1.5 dBTP true peak and 11 LU LRA. It retains the original and saves a separate `.loudness_<LUFS>LUFS_<id>` file. MP4 video is stream-copied, with AAC 256 kbps audio; MP3 uses your selected bitrate. Both normalize to 48 kHz. Normalization is off by default and may raise or lower level. It does not recreate TikTok playback effects or recover lost quality; lossy encoding can slightly change final measurements. Silent/unmeasurable audio is skipped.
 
