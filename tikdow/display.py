@@ -179,6 +179,8 @@ class DisplayController:
                 scaled = tuple(round(v * scale) for v in values)
                 widget.configure(**{option: scaled if len(scaled) > 1 else scaled[0]})
             for widget, manager, option, values in self.spacing:
+                if widget.winfo_manager() != manager:
+                    continue  # Keep conditionally hidden controls hidden during DPI changes.
                 scaled = tuple(round(v * scale) for v in values)
                 configure = widget.pack_configure if manager == 'pack' else widget.grid_configure
                 configure(**{option: scaled if len(scaled) > 1 else scaled[0]})

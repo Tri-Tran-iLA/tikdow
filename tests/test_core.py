@@ -13,7 +13,7 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(validate_url(' ' + url + ' '), url)
         for url in ('https://tiktok.com.evil.org/a', 'https://evil.org/a', 'file:///tmp/a',
                     'https://user@tiktok.com/a', 'https://tiktok.com:bad/a',
-                    'https://tiktok.com/', 'https://www.tiktok.com/@x/photo/123'):
+                    'https://tiktok.com/', 'https://www.tiktok.com/@x/live'):
             with self.assertRaises(ValueError, msg=url):
                 validate_url(url)
 
@@ -47,3 +47,42 @@ class CoreTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PhotoTests(unittest.TestCase):
+    def test_photo_forces_mp3_and_keeps_post_id(self):
+        from tikdow.core import is_photo_url
+        url = 'https://www.tiktok.com/@mcquinnt6/photo/7672950905859263762'
+        self.assertTrue(is_photo_url(url))
+        command = build_command(url, defaults())
+        self.assertIn('--audio-format', command)
+        self.assertIn('mp3', command)
+        self.assertNotIn('--recode-video', command)
+        self.assertEqual(command[-1], url.replace('/photo/', '/video/'))
+
+    def test_photo_detection_ignores_query_and_fake_domain(self):
+        from tikdow.core import is_photo_url
+        for url in ('https://evil.test/@x/photo/123',
+                    'https://www.tiktok.com/@x/video/123?ref=/photo/123',
+                    'https://vt.tiktok.com/abc'):
+            self.assertFalse(is_photo_url(url))
+        self.assertTrue(is_photo_url('https://m.tiktok.com/@x/photo/123/?lang=en'))
+
+    def test_ui_restores_previous_format(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from tikdow.app import App
+        import tkinter as tk
+        root = tk.Tcl()
+        app = SimpleNamespace(url=tk.StringVar(root, 'https://www.tiktok.com/@x/photo/123'),
+            values={'format':tk.StringVar(root, 'mp4')}, photo_mode=False, previous_format='mp4',
+            mp4_button=Mock(), status=Mock(), display=SimpleNamespace(last=None),
+            t=lambda s:s, persist=Mock())
+        app.mp4_button.master.pack_slaves.return_value=[Mock()]
+        App.update_photo_mode(app)
+        self.assertEqual(app.values['format'].get(),'mp3')
+        app.mp4_button.pack_forget.assert_called_once()
+        app.url.set('https://www.tiktok.com/@x/video/123')
+        App.update_photo_mode(app)
+        self.assertEqual(app.values['format'].get(),'mp4')
+        app.mp4_button.pack.assert_called_once()

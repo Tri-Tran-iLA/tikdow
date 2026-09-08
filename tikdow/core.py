@@ -1,6 +1,7 @@
 """Settings, URL validation and downloader command construction."""
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -69,8 +70,28 @@ def validate_url(url):
         valid = False
     if not valid:
         raise ValueError('Hãy dán một link video HTTPS của TikTok (hỗ trợ vm/vt.tiktok.com).')
-    if '/photo/' in parts.path or '/live' in parts.path:
-        raise ValueError('Bản này hỗ trợ video TikTok, chưa hỗ trợ ảnh hoặc LIVE.')
+    if '/live' in parts.path:
+        raise ValueError('Chưa hỗ trợ TikTok LIVE.')
+    return url
+
+
+def is_photo_url(url):
+    try:
+        validate_url(url)
+        return bool(re.fullmatch(r'/@[^/]+/photo/\d+/?', urlsplit(url.strip()).path))
+    except ValueError:
+        return False
+
+
+def is_short_url(url):
+    return urlsplit(url.strip()).hostname in ('vt.tiktok.com', 'vm.tiktok.com')
+
+
+def download_url(url):
+    # TikTok serves slideshow metadata/audio through its video-detail route too.
+    if is_photo_url(url):
+        parts = urlsplit(url)
+        return parts._replace(netloc='www.tiktok.com', path=parts.path.replace('/photo/', '/video/', 1)).geturl()
     return url
 
 
@@ -90,10 +111,10 @@ def build_command(url, settings):
                '-P', settings['output_dir'], '-o', '%(title).100s [%(id)s].%(ext)s']
     if settings['ffmpeg_dir']:
         command += ['--ffmpeg-location', settings['ffmpeg_dir']]
-    if settings['format'] == 'mp3':
+    if settings['format'] == 'mp3' or is_photo_url(url):
         command += ['-f', 'bestaudio/best', '-x', '--audio-format', 'mp3',
                     '--audio-quality', settings['mp3_bitrate'] + 'K']
     else:
         command += ['-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
                     '--merge-output-format', 'mp4', '--recode-video', 'mp4']
-    return command + ['--', url]
+    return command + ['--', download_url(url)]

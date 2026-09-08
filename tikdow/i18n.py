@@ -3,3 +3,8 @@ STRINGS = {'Video hoặc âm thanh — chọn cách bạn muốn lưu.': 'Video 
 
 def translate(text, language):
     return STRINGS.get(text, text) if language == "en" else text
+
+STRINGS.update({
+    'Bài ảnh: chỉ tải nhạc MP3.': 'Photo post: downloading MP3 audio only.',
+    'Chưa hỗ trợ TikTok LIVE.': 'TikTok LIVE is not supported.',
+})

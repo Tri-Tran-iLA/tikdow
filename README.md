@@ -8,7 +8,7 @@
 
 ## Tính năng
 
-- **MP4 / MP3:** hỗ trợ link video đầy đủ và link rút gọn `vt.tiktok.com`, `vm.tiktok.com`; MP3 chọn 128 / 192 / 256 / 320 kbps.
+- **MP4 / MP3:** video tải được MP4 hoặc MP3; bài ảnh `/photo/` tải phần nhạc MP3. Tự ẩn MP4 khi nhận diện bài ảnh và hiện lại khi đổi sang video. Hỗ trợ link video đầy đủ và link rút gọn `vt.tiktok.com`, `vm.tiktok.com`; MP3 chọn 128 / 192 / 256 / 320 kbps.
 - **Loudness:** đo nguồn và kết quả, chuẩn hóa theo −16 / −14 / −12 LUFS, lưu thêm bản riêng và giữ bản tải ban đầu.
 - **Giao diện song ngữ:** chuyển English / Tiếng Việt ngay trong ứng dụng, không cần khởi động lại.
 - **DPI tự động:** bố cục cho Full HD, QHD/2K và 4K; tự điều chỉnh theo DPI và vùng làm việc khi đổi màn hình. Khóa resize/maximize, vẫn di chuyển và thu nhỏ được.
@@ -39,6 +39,8 @@ Có thể khởi chạy bằng `python launch.py`. Linux/macOS dùng `python3 la
 3. Nếu muốn chuẩn hóa âm lượng, bật **Nâng loudness (lưu thêm bản riêng)** rồi chọn LUFS.
 4. Bấm **Tải xuống**. Xem tiến trình/nhật ký, hoặc bấm **Hủy tải** để dừng.
 5. Bấm **Mở thư mục** để xem kết quả.
+
+Với link ảnh, ứng dụng tải nhạc được TikTok cung cấp cho bài đăng; không tải ảnh và không dựng slideshow. Link rút gọn được giải địa chỉ khi bấm tải. Việc trích xuất còn phụ thuộc phản hồi TikTok; nếu lỗi, thử link đầy đủ và cập nhật bộ tải.
 
 Chọn **English** hoặc **Tiếng Việt** ở góc trên bên phải. Nhật ký kỹ thuật từ yt-dlp/FFmpeg giữ ngôn ngữ gốc. Khi đóng ứng dụng, hãy chờ tải/xử lý hoàn tất hoặc hủy và đợi dừng.
 
@@ -92,7 +94,7 @@ Nếu TikTok thay đổi và bộ tải gặp lỗi, cập nhật dependencies t
 
 - **Thiếu FFmpeg/FFprobe:** chọn thư mục `bin` chứa cả hai chương trình.
 - **Lỗi impersonation:** dependencies đã bao gồm `curl_cffi`; dùng lệnh cập nhật trên để sửa môi trường.
-- **Không tải được video:** phiên bản này chưa hỗ trợ đăng nhập/cookies, album ảnh, LIVE hoặc tải hàng loạt. Nội dung riêng tư, giới hạn vùng và chống bot có thể bị từ chối.
+- **Không tải được video:** phiên bản này chưa hỗ trợ đăng nhập/cookies, tải ảnh trong album, LIVE hoặc tải hàng loạt. Nội dung riêng tư, giới hạn vùng và chống bot có thể bị từ chối.
 - **Scale Windows rất cao:** ứng dụng giảm tỉ lệ UI nếu cần để vừa vùng làm việc; chữ có thể nhỏ hơn mức scale Windows yêu cầu.
 - **Buộc dừng khi xử lý:** có thể còn thư mục `.tikdow-loudness-*`; chỉ xóa sau khi ứng dụng đã dừng.
 
@@ -125,13 +127,13 @@ Kiểm thử bao gồm MP3/MP4, giữ file gốc/luồng video, im lặng, setti
 
 **Setup:** install Python 3.10+ with pip and Tcl/Tk, plus FFmpeg and FFprobe. Clone this repository or extract its ZIP, then run `Start-TikDow.bat`. The launcher creates and requires a project-local `.venv`; it installs dependencies automatically. Choose your FFmpeg bin folder in the app if it is not on PATH. Windows is the primary target; Linux/macOS can use `python3 launch.py` with the required system packages.
 
-**Download:** paste a TikTok video URL, choose MP4 or MP3, select an output folder, and click Download. MP3 supports 128/192/256/320 kbps. Progress, cancellation and an Open folder button are included. Select English or Tiếng Việt at the top right; engine logs keep their original language.
+**Download:** photo-post URLs support MP3 audio only; MP4 is hidden for photo posts and restored for video URLs. Short links are resolved when downloading begins. Paste a TikTok video URL, choose MP4 or MP3, select an output folder, and click Download. MP3 supports 128/192/256/320 kbps. Progress, cancellation and an Open folder button are included. Select English or Tiếng Việt at the top right; engine logs keep their original language.
 
 **Loudness:** enable normalization before downloading and select −16, −14 or −12 LUFS. TikDow measures the downloaded audio, applies measured two-pass FFmpeg loudnorm processing, then measures the encoded output. Targets are −1.5 dBTP true peak and 11 LU LRA. It retains the original and saves a separate `.loudness_<LUFS>LUFS_<id>` file. MP4 video is stream-copied, with AAC 256 kbps audio; MP3 uses your selected bitrate. Both normalize to 48 kHz. Normalization is off by default and may raise or lower level. It does not recreate TikTok playback effects or recover lost quality; lossy encoding can slightly change final measurements. Silent/unmeasurable audio is skipped.
 
 **Display and settings:** the window cannot be manually resized or maximized, but can be moved/minimized. DPI-aware layout adapts to Full HD, QHD and 4K working areas, reducing effective scale when needed to fit. Preferences persist in `settings/settings.json`; pasted URLs are not saved. Author and repository links appear in the footer.
 
-**Updates:** close TikDow, run `git pull --ff-only`, then start it again. To refresh the downloader, run `.\.venv\Scripts\python.exe -m pip install --upgrade -r requirements.txt`. Browser impersonation dependencies are included. Login/cookies, photo albums, LIVE and batch downloads are not supported; private videos, regional restrictions or anti-bot responses may prevent downloads. Forced termination can leave a `.tikdow-loudness-*` temporary folder; remove it only after the app has stopped.
+**Updates:** close TikDow, run `git pull --ff-only`, then start it again. To refresh the downloader, run `.\.venv\Scripts\python.exe -m pip install --upgrade -r requirements.txt`. Browser impersonation dependencies are included. Login/cookies, image-file downloads, LIVE and batch downloads are not supported; private videos, regional restrictions or anti-bot responses may prevent downloads. Forced termination can leave a `.tikdow-loudness-*` temporary folder; remove it only after the app has stopped.
 
 **Validation:** automated tests cover audio processing, preferences, DPI calculations and monitor-error recovery. Live TikTok behavior and Windows multi-monitor visual checks still require testing on the target machine. Report issues with logs, Python version and commit ID. Download only content you have permission to use.
 

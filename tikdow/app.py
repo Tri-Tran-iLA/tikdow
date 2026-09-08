@@ -14,7 +14,7 @@ from tkinter import filedialog, messagebox, ttk
 from .display import DisplayController, enable_dpi_awareness
 from .i18n import STRINGS, translate
 
-from .core import build_command, check_ffmpeg, load_settings, save_settings
+from .core import is_photo_url, is_short_url, build_command, check_ffmpeg, load_settings, save_settings
 
 
 class App(tk.Tk):
@@ -39,6 +39,8 @@ class App(tk.Tk):
         self.process = None
         self.saved = load_settings()
         self.url = tk.StringVar()
+        self.photo_mode = False
+        self.previous_format = self.saved['format']
         self.values = {key: tk.StringVar(value=value) for key, value in self.saved.items()}
         self.status = tk.StringVar(value=self.t('Sẵn sàng. Dán link TikTok để bắt đầu.'))
         self.controls = []
@@ -62,6 +64,8 @@ class App(tk.Tk):
             button = ttk.Radiobutton(options, text=label, value=kind, variable=self.values['format'], command=self.persist)
             button.pack(side='left', padx=(0, 18))
             self.controls.append(button)
+            if kind == 'mp4':
+                self.mp4_button = button
         ttk.Label(options, text='MP3 kbps:').pack(side='left')
         bitrate = ttk.Combobox(options, textvariable=self.values['mp3_bitrate'], values=('128', '192', '256', '320'), width=5, state='readonly')
         bitrate.pack(side='left', padx=8)
@@ -116,7 +120,24 @@ class App(tk.Tk):
         self.update_idletasks()
         self.display = DisplayController(self)
         self.deiconify()
+        self.url.trace_add('write', self.update_photo_mode)
         entry.focus_set()
+
+    def update_photo_mode(self, *_args, resolved_photo=False):
+        photo = resolved_photo or is_photo_url(self.url.get())
+        if photo and not self.photo_mode:
+            self.previous_format = self.values['format'].get()
+            self.values['format'].set('mp3')
+            self.mp4_button.pack_forget()
+            self.status.set(self.t('Bài ảnh: chỉ tải nhạc MP3.'))
+        elif not photo and self.photo_mode:
+            others = self.mp4_button.master.pack_slaves()
+            self.mp4_button.pack(side='left', padx=(0, 18), before=others[0])
+            self.values['format'].set(self.previous_format)
+            self.status.set(self.t('Sẵn sàng. Dán link TikTok để bắt đầu.'))
+        self.photo_mode = photo
+        self.display.last = None
+        self.persist()
 
     def t(self, text):
         return translate(text, self.values['language'].get())
@@ -193,7 +214,7 @@ class App(tk.Tk):
         for control in self.controls:
             control.configure(state='disabled')
         self.cancel_button.configure(state='normal')
-        threading.Thread(target=self.worker, args=(command, settings), daemon=True).start()
+        threading.Thread(target=self.worker, args=(self.url.get().strip(), settings), daemon=True).start()
 
     @staticmethod
     def terminate(process):
@@ -208,7 +229,7 @@ class App(tk.Tk):
         except (OSError, ProcessLookupError):
             pass
 
-    def run_process(self, command):
+    def run_process(self, command, result_prefix='TIKDOW_FILE:'):
         code = 1
         paths = []
         try:
@@ -220,8 +241,8 @@ class App(tk.Tk):
                 if self.cancelled.is_set():
                     self.terminate(process)
                 for line in process.stdout:
-                    if line.startswith('TIKDOW_FILE:'):
-                        paths.append(json.loads(line[len('TIKDOW_FILE:'):]))
+                    if line.startswith(result_prefix):
+                        paths.append(json.loads(line[len(result_prefix):]))
                     else:
                         self.events.put(('log', line.rstrip()))
                 code = process.wait()
@@ -231,9 +252,19 @@ class App(tk.Tk):
             self.process = None
         return code, paths
 
-    def worker(self, command, settings):
+    def worker(self, url, settings):
         code = 1
         try:
+            if is_short_url(url):
+                code, resolved = self.run_process([sys.executable, '-m', 'tikdow.resolve', url], 'TIKDOW_URL:')
+                if code or not resolved or self.cancelled.is_set():
+                    code = code or 1
+                    return
+                url = resolved[-1]
+            if is_photo_url(url):
+                settings = dict(settings, format='mp3')
+                self.events.put(('photo', None))
+            command = build_command(url, settings)
             code, paths = self.run_process(command)
             if code == 0 and settings['loudness'] == 'on' and not self.cancelled.is_set():
                 if not paths:
@@ -265,7 +296,9 @@ class App(tk.Tk):
                 kind, value = self.events.get_nowait()
             except queue.Empty:
                 break
-            if kind == 'processing':
+            if kind == 'photo':
+                self.update_photo_mode(resolved_photo=True)
+            elif kind == 'processing':
                 self.progress.configure(mode='indeterminate')
                 self.progress.start(15)
             elif kind == 'log':
