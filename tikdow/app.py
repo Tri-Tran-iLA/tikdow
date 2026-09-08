@@ -125,6 +125,8 @@ class App(tk.Tk):
 
     def update_photo_mode(self, *_args, resolved_photo=False):
         photo = resolved_photo or is_photo_url(self.url.get())
+        if photo == self.photo_mode:
+            return
         if photo and not self.photo_mode:
             self.previous_format = self.values['format'].get()
             self.values['format'].set('mp3')
@@ -136,7 +138,6 @@ class App(tk.Tk):
             self.values['format'].set(self.previous_format)
             self.status.set(self.t('Sẵn sàng. Dán link TikTok để bắt đầu.'))
         self.photo_mode = photo
-        self.display.last = None
         self.persist()
 
     def t(self, text):
