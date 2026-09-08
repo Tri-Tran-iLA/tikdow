@@ -76,13 +76,18 @@ class PhotoTests(unittest.TestCase):
         root = tk.Tcl()
         app = SimpleNamespace(url=tk.StringVar(root, 'https://www.tiktok.com/@x/photo/123'),
             values={'format':tk.StringVar(root, 'mp4')}, photo_mode=False, previous_format='mp4',
-            mp4_button=Mock(), status=Mock(), display=SimpleNamespace(last=None),
+            mp4_button=Mock(), status=Mock(), display=SimpleNamespace(last=('monitor', 96)),
             t=lambda s:s, persist=Mock())
         app.mp4_button.master.pack_slaves.return_value=[Mock()]
         App.update_photo_mode(app)
         self.assertEqual(app.values['format'].get(),'mp3')
         app.mp4_button.pack_forget.assert_called_once()
+        self.assertEqual(app.display.last, ('monitor', 96))
+        App.update_photo_mode(app, resolved_photo=True)
+        app.mp4_button.pack_forget.assert_called_once()
+        app.persist.assert_called_once()
         app.url.set('https://www.tiktok.com/@x/video/123')
         App.update_photo_mode(app)
         self.assertEqual(app.values['format'].get(),'mp4')
         app.mp4_button.pack.assert_called_once()
+        self.assertEqual(app.display.last, ('monitor', 96))
