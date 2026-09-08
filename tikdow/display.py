@@ -196,7 +196,8 @@ class DisplayController:
             root.minsize(width, height)
             root.maxsize(width, height)
             root.geometry(f'{width}x{height}')
-            root.resizable(False, False)
+            if initial:
+                root.resizable(False, False)
             root.update_idletasks()
             if initial:
                 x = work[0] + (work[2] - work[0] - width) // 2
